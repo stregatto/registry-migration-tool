@@ -1,7 +1,8 @@
 import datetime
 import os
 
-class Log_file(object):
+class LogFile(object):
+
 
     def __init__(self):
         self.filename = '/tmp/registry_migration.log'
@@ -37,6 +38,6 @@ class Log_file(object):
                                          time.second)
         return nowtime
 
-# logfile = Log_file()
+# logfile = LogFile()
 # logfile.is_image_done('pippo')
 # res = logfile.image_done('pippo')

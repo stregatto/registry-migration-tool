@@ -1,6 +1,6 @@
 from kubernetes import client, config
 
-class K8s_tool(object):
+class K8sTool(object):
     '''
     Yet another wrapper for kubernetes library plus some glue to simplify the work
     '''

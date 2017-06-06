@@ -1,7 +1,7 @@
 
-from k8s_tool import K8s_tool
-from docker_tool import Docker_tool
-from log_file import Log_file
+from k8stool import K8sTool
+from dockertool import DockerTool
+from logfile import LogFile
 import argparse
 
 
@@ -9,9 +9,9 @@ class Registry_tool(object):
 
 
     def __init__(self):
-        self.k8s = K8s_tool()
-        self.logfile = Log_file()
-        self.docker = Docker_tool()
+        self.k8s = K8sTool()
+        self.logfile = LogFile()
+        self.docker = DockerTool()
         self.images = self.k8s.get_images_from_all_deployment()
 
 
@@ -19,13 +19,13 @@ class Registry_tool(object):
         for image in self.images:
             if not self.logfile.is_image_done(image):
                 if self.docker.pull_image(image, dryrun):
-                    # to do:
-                    # tag image and push
                     image_name = self.docker.image_name(image)
-                    new_image = '%s/%s:%s' % (destination_registry,
-                                              image_name.get('repository'),
-                                              image_name.get('tag'))
-                    self.docker.push_image(new_image, dryrun)
+                    image_id = self.docker.get_image_id(image)
+                    tag = image_name.get('tag')
+                    new_name = '%s%s' % (destination_registry,
+                                          image_name.get('repository'))
+                    self.docker.tag_image(image_id=image_id, repository=new_name, tag=tag)
+                    self.docker.push_image( new_name + ':' + tag, dryrun)
                     self.docker.delete_image(image, dryrun)
                     self.logfile.image_done(image)
         return
