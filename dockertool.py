@@ -2,6 +2,7 @@ import docker
 import re
 import json
 import os
+import sys
 
 # TO DO, for now is not working
 # now it work using:
@@ -12,7 +13,7 @@ class Registry(object):
         self.user = user
         self.password = password
         self.auth = json.loads('{ "user": "%s", "password": "%s"}' % (self.user,
-                                                                      self.password)
+                                                                      self.password))
         if not user:
             self.auth_present = False
         else:
@@ -33,21 +34,41 @@ class DockerTool(object):
         self.destination_registry = Registry(os.environ.get('DT_DESTINATION_REGISTRY_USER', None),
                                              os.environ.get('DT_DESTINATION_REGISTRY_PASSWORD', None))
 
+
     def __steamerror__(self, line):
         if 'errorDetail' in line:
             j = json.loads(line)
             raise Exception(j.get('errorDetail'))
 
+
+    def __primitive_push_image__(self, image, destination_registry):
+        '''
+        This is a primitive to push image
+        '''
+        if self.destination_registry.auth_present:
+            return self.client.push(image,
+                                    auth_config=destination_registry.auth,
+                                    stream=True,)
+        else:
+            return self.client.push(image,
+                                    stream=True,)
+
+
+    def __print_dot__(self):
+        sys.stdout.write('.')
+        sys.stdout.flush()
+
+
     def pull_image(self, image, dryrun=None):
-        try:
-            print('pulling image: %s' % image)
-            if dryrun is None or dryrun is 0:
-                res = self.client.pull(image)
-                return res
-            else:
-                print('pull_image -- dryrun: %s' % dryrun)
-        except Exception as e:
-            print('Error: %s' % e)
+        print('pulling image: %s' % image)
+        if dryrun is None or dryrun is 0:
+            for line in self.client.pull(image, stream=True):
+                self.__print_dot__()
+                self.__steamerror__(line)
+        else:
+            print('pull_image -- dryrun: %s' % dryrun)
+        print(' done')
+        return
 
     def get_image_id(self, image_name):
         for image in self.client.images():
@@ -70,14 +91,15 @@ class DockerTool(object):
         image_id = kwargs.get('image_id')
         repository = kwargs.get('repository')
         tag = kwargs.get('tag')
-        print('tagging image id %s, repository: %s, tag: %s' % (image_id,
-                                                                repository,
-                                                                tag))
+        print('tagging image: id: %s, repository: %s, tag: %s' % (image_id,
+                                                                  repository,
+                                                                  tag))
         if dryrun is None or dryrun is 0:
             self.client.tag(image_id, repository, tag)
         else:
             print('tag_image -- dryrun: %s' % dryrun)
         return
+
 
     def push_image(self, image, dryrun=None):
         '''
@@ -87,19 +109,13 @@ class DockerTool(object):
         res = []
         # Aweful trick perhaps here is better some decorator
         if dryrun is None or dryrun is 0:
-            if self.destination_registry.auth_present:
-                print('pushing image -- with auth %s' % self.destination_registry.auth)
-                for line in self.client.push(image,
-                                             auth_config=self.destination_registry.auth,
-                                             stream=True,):
-                    self.__steamerror__(line)
-            else:
-                for line in self.client.push(image,
-                                             stream=True):
-                    self.__steamerror__(line)
-
+            for line in self.__primitive_push_image__(image,
+                                                      self.destination_registry):
+                self.__print_dot__()
+                self.__steamerror__(line)
         else:
-            print('push_image -- dryrun: %s' % dryrun)
+            print('push_image: -- dryrun: %s' % dryrun)
+        print(' done')
         return
 
     def image_name(self, image):
@@ -117,13 +133,14 @@ class DockerTool(object):
             print('Error parsing image name: %s' % e)
 
 
-    def delete_image(self, image, force=True, dryrun=None):
+    def delete_image(self, image, dryrun=None, force_delete=True):
         '''
         delete an image from local docker, yet another wrapper...
         '''
         print('removing image: %s' % image)
         if dryrun is None or dryrun is 0:
-            # self.client.remove_image(image, force)
+            print force_delete
+            self.client.remove_image(image, force=force_delete)
             return
         else:
             print('delete_image -- dryrun: %s' % dryrun)

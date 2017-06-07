@@ -18,16 +18,17 @@ class Registry_tool(object):
     def migrate_registry(self, destination_registry, dryrun):
         for image in self.images:
             if not self.logfile.is_image_done(image):
-                if self.docker.pull_image(image, dryrun):
-                    image_name = self.docker.image_name(image)
-                    image_id = self.docker.get_image_id(image)
-                    tag = image_name.get('tag')
-                    new_name = '%s%s' % (destination_registry,
-                                          image_name.get('repository'))
-                    self.docker.tag_image(image_id=image_id, repository=new_name, tag=tag)
-                    self.docker.push_image( new_name + ':' + tag, dryrun)
-                    self.docker.delete_image(image, dryrun)
-                    self.logfile.image_done(image)
+                self.docker.pull_image(image, dryrun)
+                image_name = self.docker.image_name(image)
+                image_id = self.docker.get_image_id(image)
+                tag = image_name.get('tag')
+                image_new = '%s%s' % (destination_registry,
+                                      image_name.get('repository'))
+                self.docker.tag_image(image_id=image_id, repository=image_new, tag=tag)
+                self.docker.push_image(image_new + ':' + tag, dryrun)
+                self.docker.delete_image(image_new + ':' + tag, dryrun)
+                self.docker.delete_image(image, dryrun)
+                self.logfile.image_done(image)
         return
 
 
