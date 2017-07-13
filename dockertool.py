@@ -7,6 +7,8 @@ import sys
 # TO DO, for now is not working
 # now it work using:
 # ocker login -u="application+servicetool" -p="M0FXZY8JF6P8QPRKBA9DSAP8YY6FDSK432Q83Q7AU52Y" registry.my-rprivate-registry:30080
+
+
 class Registry(object):
 
     def __init__(self, user, password):
@@ -34,12 +36,10 @@ class DockerTool(object):
         self.destination_registry = Registry(os.environ.get('DT_DESTINATION_REGISTRY_USER', None),
                                              os.environ.get('DT_DESTINATION_REGISTRY_PASSWORD', None))
 
-
     def __steamerror__(self, line):
         if 'errorDetail' in line:
             j = json.loads(line)
             raise Exception(j.get('errorDetail'))
-
 
     def __primitive_push_image__(self, image, destination_registry):
         '''
@@ -53,11 +53,9 @@ class DockerTool(object):
             return self.client.push(image,
                                     stream=True,)
 
-
     def __print_dot__(self):
         sys.stdout.write('.')
         sys.stdout.flush()
-
 
     def pull_image(self, image, dryrun=None):
         print('pulling image: %s' % image)
@@ -100,13 +98,11 @@ class DockerTool(object):
             print('tag_image -- dryrun: %s' % dryrun)
         return
 
-
     def push_image(self, image, dryrun=None):
         '''
         push an image to remote repository, it's a wrapper ;)
         '''
         print('pushing image: %s' % image)
-        res = []
         # Aweful trick perhaps here is better some decorator
         if dryrun is None or dryrun is 0:
             for line in self.__primitive_push_image__(image,
@@ -131,7 +127,6 @@ class DockerTool(object):
             return json.loads(name)
         except Exception as e:
             print('Error parsing image name: %s' % e)
-
 
     def delete_image(self, image, dryrun=None, force_delete=True):
         '''
