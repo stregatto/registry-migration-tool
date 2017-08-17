@@ -4,19 +4,15 @@ import json
 import os
 import sys
 
-# TO DO, for now is not working
-# now it work using:
-# ocker login -u="application+servicetool" -p="M0FXZY8JF6P8QPRKBA9DSAP8YY6FDSK432Q83Q7AU52Y" registry.my-rprivate-registry:30080
 
+class RegistryAuth(object):
 
-class Registry(object):
-
-    def __init__(self, user, password):
-        self.user = user
+    def __init__(self, username, password):
+        self.username = username
         self.password = password
-        self.auth = json.loads('{ "user": "%s", "password": "%s"}' % (self.user,
-                                                                      self.password))
-        if not user:
+        self.auth = json.loads('{ "username": "%s", "password": "%s"}' % (self.username,
+                                                                          self.password))
+        if not username:
             self.auth_present = False
         else:
             self.auth_present = True
@@ -31,23 +27,21 @@ class DockerTool(object):
     def __init__(self):
         self.client = docker.APIClient(base_url='unix://var/run/docker.sock')
 
-        self.source_registry = Registry(os.environ.get('DT_SOURCE_REGISTRY_USER', None),
-                                        os.environ.get('DT_SOURCE_REGISTRY_PASSWORD', None))
-        self.destination_registry = Registry(os.environ.get('DT_DESTINATION_REGISTRY_USER', None),
-                                             os.environ.get('DT_DESTINATION_REGISTRY_PASSWORD', None))
+        self.source_registry = RegistryAuth(os.environ.get('DT_SOURCE_REGISTRY_USERNAME', None),
+                                            os.environ.get('DT_SOURCE_REGISTRY_PASSWORD', None))
 
     def __steamerror__(self, line):
         if 'errorDetail' in line:
             j = json.loads(line)
             raise Exception(j.get('errorDetail'))
 
-    def __primitive_push_image__(self, image, destination_registry):
+    def __primitive_push_image__(self, image, auth):
         '''
         This is a primitive to push image
         '''
-        if self.destination_registry.auth_present:
+        if auth.auth_present:
             return self.client.push(image,
-                                    auth_config=destination_registry.auth,
+                                    auth_config=auth.auth,
                                     stream=True,)
         else:
             return self.client.push(image,
@@ -56,6 +50,12 @@ class DockerTool(object):
     def __print_dot__(self):
         sys.stdout.write('.')
         sys.stdout.flush()
+
+    def get_dest_registry_auth(self, organization):
+        organization = organization.upper()
+        destination_registry = RegistryAuth(os.environ.get('DT_DESTINATION_REGISTRY_%s_USERNAME' % organization, None),
+                                            os.environ.get('DT_DESTINATION_REGISTRY_%s_TOKEN' % organization, None))
+        return destination_registry
 
     def pull_image(self, image, dryrun=None):
         print('pulling image: %s' % image)
@@ -102,11 +102,13 @@ class DockerTool(object):
         '''
         push an image to remote repository, it's a wrapper ;)
         '''
+        organization = image.split('/')[1]
         print('pushing image: %s' % image)
+        print('in the %s organization' % organization)
         # Aweful trick perhaps here is better some decorator
         if dryrun is None or dryrun is 0:
             for line in self.__primitive_push_image__(image,
-                                                      self.destination_registry):
+                                                      self.get_dest_registry_auth(organization)):
                 self.__print_dot__()
                 self.__steamerror__(line)
         else:
