@@ -5,7 +5,7 @@ class LogFile(object):
 
 
     def __init__(self):
-        self.filename = '/tmp/registry_migration.log'
+        self.filename = os.environ.get('DT_MIGRATION_TOOL_LOG', '/tmp/registry_migration.log')
         self.__touch__(self.filename)
         with open(self.filename) as f:
             self.images_log = f.read().splitlines()

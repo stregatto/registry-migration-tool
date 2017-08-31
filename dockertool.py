@@ -71,11 +71,20 @@ class DockerTool(object):
     def get_image_id(self, image_name):
         for image in self.client.images():
             gotit = False
-            for RepoTags in image.get('RepoTags'):
-                if RepoTags in image_name:
-                    gotit = True
-            if gotit:
-                return image.get('Id')
+            try:
+                for RepoTags in image.get('RepoTags'):
+                    if RepoTags in image_name:
+                        gotit = True
+                if gotit:
+                    return image.get('Id')
+            except:
+                raise Exception('''
+id not found for image name: %(image_name)s, no RepoTags present.
+You can skip this image putting the name into ${DT_MIGRATION_TOOL_LOG} file.
+eg:
+   skip %(image_name)s
+
+                              ''' % {'image_name': image_name})
         raise Exception('id not found for image name: %s' % image_name)
 
     def tag_image(self, dryrun=None, **kwargs):
