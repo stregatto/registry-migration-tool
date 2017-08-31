@@ -1,8 +1,8 @@
 import datetime
 import os
 
-class LogFile(object):
 
+class LogFile(object):
 
     def __init__(self):
         self.filename = os.environ.get('DT_MIGRATION_TOOL_LOG', '/tmp/registry_migration.log')
